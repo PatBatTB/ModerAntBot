@@ -38,19 +38,22 @@ public class UpdateConsumer implements LongPollingUpdateConsumer {
     }
 
     private void handleGroupMessage(Message message) {
-        if (message.hasText()) {
-            try {
-                ChatMember member = getChatMember(message);
-                if (!"creator".equals(member.getStatus()) &&
-                        !"administrator".equals(member.getStatus())) {
-                    int restrictionDate = getRestrictUntilUnixTime(message.getDate());
-                    RestrictChatMember restrictChatMember = getRestrictChatMember(restrictionDate, message);
-                    botClient.execute(restrictChatMember);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+
+        // необходимо проверить в какой топик отправлено сообщение.
+            //если отправлено в основной:
+                //проверить разрешено ли пользователю отправлять сообщение:
+                    //если разрешено:
+                        // необходимо проверить сообщение не предмет всего лишнего:
+                        // сообщение не должно быть стикером, изображением, видео, геолокацией.
+                            //если сообщение содержит что-то запрещеное:
+                                //написать сообщение, что допускается отправлять только текст, сообщение будет удалено через минуту.
+                                //создать задачу по удалению сообщения и предупреждения.
+                            // если сообщение содержит только текст: ОК
+                    // если запрещено:
+                        // написать сообщение, что допускется отправка только одного сообщения в день и время снятия ограничения.
+                        // написать, что сообщение будет удалено через минуту
+                        // создать задачу по удалению сообщения и предупреждения.
+        // если в доп.топики: ОК
     }
 
     private @NotNull ChatMember getChatMember(Message message) throws TelegramApiException {
