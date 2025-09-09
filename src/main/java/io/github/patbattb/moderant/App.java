@@ -6,9 +6,9 @@ public class App {
     public static void main(String[] args) {
         ArgsParser argsParser = new ArgsParser();
         String botToken = argsParser.getBotToken(args);
-        UpdateConsumer updateConsumer = new UpdateConsumer(botToken);
+        Bot bot = new Bot(botToken);
         try (TelegramBotsLongPollingApplication tgApp = new TelegramBotsLongPollingApplication()) {
-            tgApp.registerBot(botToken, updateConsumer);
+            tgApp.registerBot(botToken, bot);
             Thread.currentThread().join(0);
         } catch (Exception e) {
             e.printStackTrace();

@@ -5,6 +5,7 @@ target/
 
 ### IntelliJ IDEA ###
 .idea/
+info.txt
 
 ### Eclipse ###
 .apt_generated
