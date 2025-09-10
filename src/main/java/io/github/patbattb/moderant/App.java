@@ -4,14 +4,10 @@ import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
 
 public class App {
     public static void main(String[] args) {
-        //TODO парсинг настроек из файла конфига
-        ArgsParser argsParser = new ArgsParser();
-        String botToken = argsParser.getBotToken(args);
-        //TODO создание объектов-топиков с ограничениями.
         Parameters.init();
-        Bot bot = new Bot(botToken);
+        Bot bot = new Bot(Parameters.getBotToken());
         try (TelegramBotsLongPollingApplication tgApp = new TelegramBotsLongPollingApplication()) {
-            tgApp.registerBot(botToken, bot);
+            tgApp.registerBot(Parameters.getBotToken(), bot);
             Thread.currentThread().join(0);
         } catch (Exception e) {
             e.printStackTrace();
