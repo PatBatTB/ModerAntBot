@@ -9,10 +9,14 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class FileService {
-    public static void zipMessageText(String text, String zipFileName) {
-        try (FileOutputStream fos = new FileOutputStream(zipFileName);
+
+    public static final String ZIP_FILE_NAME = "message.zip";
+    private static final String TEXT_FILE_NAME = "text.txt";
+
+    public static void zipMessageText(String text) {
+        try (FileOutputStream fos = new FileOutputStream(ZIP_FILE_NAME);
              ZipOutputStream zos = new ZipOutputStream(fos)) {
-            ZipEntry entry = new ZipEntry("text.txt");
+            ZipEntry entry = new ZipEntry(TEXT_FILE_NAME);
             zos.putNextEntry(entry);
             zos.write(text.getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
@@ -21,9 +25,9 @@ public class FileService {
         }
     }
 
-    public static void deleteZipFromDisk(String zipFileName) {
+    public static void deleteZipFromDisk() {
         try {
-            Files.delete(Path.of(zipFileName));
+            Files.delete(Path.of(ZIP_FILE_NAME));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

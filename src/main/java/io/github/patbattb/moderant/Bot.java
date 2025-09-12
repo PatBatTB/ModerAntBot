@@ -23,6 +23,8 @@ public class Bot implements LongPollingUpdateConsumer {
 
     private final TelegramClient botClient;
 
+    private final String supergroupType = "supergroup";
+
     public Bot(String botToken) {
         this.botClient = new OkHttpTelegramClient(botToken);
     }
@@ -34,7 +36,7 @@ public class Bot implements LongPollingUpdateConsumer {
 
     private void consume(Update update) {
         try {
-            if (update.hasMessage() && "supergroup".equals(update.getMessage().getChat().getType())) {
+            if (update.hasMessage() && supergroupType.equals(update.getMessage().getChat().getType())) {
                 handleGroupMessage(update.getMessage());
             }
         } catch (Exception e) {
@@ -43,46 +45,34 @@ public class Bot implements LongPollingUpdateConsumer {
     }
 
     private void handleGroupMessage(Message message) {
-
-        // ОЧИСТКА СИСЕТМНЫХ СООБЩЕНИЙ
         if (isSystemMessage(message)) {
             deleteCurrentMessage(message);
             return;
         }
-        // ПРОВЕРКА ДОПУСТИМОСТИ СООБЩЕНИЯ
-            // необходимо проверить в какой топик отправлено сообщение.
+
         Integer threadId = message.getMessageThreadId();
-            //TODO сравнить ограничение пользователя по времени с разрешениями в данном топике (Нужна БД)
+        //TODO сравнить ограничение пользователя по времени с разрешениями в данном топике (Нужна БД)
+        ForumTopic topic = Parameters.getTopics().getOrDefault(threadId, ForumTopic.getDefault());
 
-            // сравнить медиа в сообщении пользователя с ограничениями для топика
-        ForumTopic topic = Parameters.getTopics()
-                .getOrDefault(threadId, new ForumTopic(null,null, new TopicPermissions()));
+        //TODO проверить ограничения по смайликам
 
-            //TODO проверить ограничения по смайликам
-
-        // если все ок - пропускаем сообщение
-        // если нет:
         if (!topic.verifyPermissions(message)) {
             handleRestrictedMessage(message, topic);
         }
     }
 
     private void handleRestrictedMessage(Message message, ForumTopic topic) {
-        // если есть текст или описание
         Integer recycleMessageId = null;
         Integer notificationMessageId = null;
         if (!Parameters.getRecycleTopicId().equals(message.getMessageThreadId())) {
             if (message.hasText() || message.hasCaption()) {
-                // отправляем сообщение в корзину
                 recycleMessageId = recyclingMessage(message, topic.getTitle());
                 //TODO записываем в базу ИД отправленного сообщения и топик (нужна БД)
             }
-            // отправляем пользователю оповещение об удалении сообщения.
             notificationMessageId = sendRecyclingNotification(message, recycleMessageId);
             //TODO записываем ид сообщения в базу
         }
 
-        // удаляем сообщение пользователя
         deleteCurrentMessage(message);
 
         //TODO планируем удаление основного сообщение через n минут (из конфига)
@@ -95,28 +85,18 @@ public class Bot implements LongPollingUpdateConsumer {
     }
 
     private Integer recyclingMessage(Message message, String topicTitle) {
-        // архивируем сообщение в zip
         String messageText = getTextFromMessage(message);
-        String zipFileName = "message.zip";
-        FileService.zipMessageText(messageText, zipFileName);
-
-        // отправляем сообщение в топик #recycle
-        // вернуть из метода ИД отправленного сообщения.
+        FileService.zipMessageText(messageText);
         Integer recycleMessageId = sendZippedMessageToRecycleTopic(
-                zipFileName, message.getChatId().toString(), message.getFrom().getUserName(), topicTitle);
-        // удаляем архив с диска
-        FileService.deleteZipFromDisk(zipFileName);
+                message.getChatId().toString(), message.getFrom().getUserName(), topicTitle);
+        FileService.deleteZipFromDisk();
         return recycleMessageId;
     }
 
     private Integer sendRecyclingNotification(Message message, Integer recycleMessageId) {
         Integer notificationMessageId = null;
-        // в текущем топике:
-        // > <@nick> ваше сообщение было удалено, потому что <причина>.
         String answerText = "@" + message.getFrom().getUserName() +
                 " Ваше сообщение было удалено из\\-за нарушения требований топика\\.";
-        // если сообщение было отправлено в корзину - добавить:
-        // > Его текст временно [доступен](ссылка на сообщение в #recycle) в корзине.
         if (recycleMessageId != null) {
             String messageLink = MessageService.getMessageLink(message, Parameters.getRecycleTopicId(), recycleMessageId);
             answerText += "\nЕго текст временно [доступен в корзине](" + messageLink + ")\\.";
@@ -153,10 +133,8 @@ public class Bot implements LongPollingUpdateConsumer {
         }
     }
 
-    private Integer sendZippedMessageToRecycleTopic(String zipFileName, String chatId,
-                                                String senderUsername, String topicTitle) {
-        // > <@nick> <#topic> <HH:MM:SS> с вложением архива
-        InputFile file = new InputFile(Path.of(zipFileName).toFile());
+    private Integer sendZippedMessageToRecycleTopic(String chatId, String senderUsername, String topicTitle) {
+        InputFile file = new InputFile(Path.of(FileService.ZIP_FILE_NAME).toFile());
         SendDocument sendDocument = new SendDocument(chatId, file);
         sendDocument.setCaption("@" + senderUsername +
                 " #" + topicTitle + " " +

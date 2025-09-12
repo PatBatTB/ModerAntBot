@@ -1,6 +1,5 @@
 package io.github.patbattb.moderant.domain.serialize;
 
-import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -13,16 +12,27 @@ import io.github.patbattb.moderant.domain.TopicPermissions;
 import java.io.IOException;
 
 public class ForumTopicDeserializer extends JsonDeserializer<ForumTopic> {
+
+    //json field's names
+    private final String id = "id";
+    private final String title = "title";
+    private final String permissions = "permissions";
+    private final String mutingMinutes = "mutingMinutes";
+
     @Override
     public ForumTopic deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-        JsonNode rootNode = p.readValueAsTree();
-        JsonNode idNode = rootNode.get("id");
-        Integer id = idNode instanceof NullNode ? null : rootNode.get("id").asInt();
-        String title = rootNode.get("title").asText();
-        JsonNode permissionsNode = rootNode.get("permissions");
+         JsonNode rootNode = p.readValueAsTree();
+        JsonNode idNode = rootNode.get(this.id);
+        Integer idValue = idNode instanceof NullNode ? null : rootNode.get(this.id).asInt();
+        String titleValue = rootNode.get(this.title).asText();
+        JsonNode mutingMinutesNode = rootNode.get(mutingMinutes);
+        Integer mutingMinutesValue = mutingMinutesNode == null ?
+                null :
+                rootNode.get(this.mutingMinutes).asInt();
+        JsonNode permissionsNode = rootNode.get(this.permissions);
         TopicPermissions permissions = permissionsNode != null ?
                 new JsonMapper().readValue(permissionsNode.toString(), TopicPermissions.class) :
                 new TopicPermissions();
-        return new ForumTopic(id, title, permissions);
+        return new ForumTopic(idValue, titleValue, mutingMinutesValue, permissions);
     }
 }
