@@ -1,40 +1,30 @@
 package io.github.patbattb.moderant;
 
 import io.github.patbattb.moderant.domain.ForumTopic;
-import io.github.patbattb.moderant.domain.TopicPermissions;
 import io.github.patbattb.moderant.service.DateTimeService;
 import io.github.patbattb.moderant.service.FileService;
 import io.github.patbattb.moderant.service.MessageService;
-import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
-import org.telegram.telegrambots.longpolling.interfaces.LongPollingUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
-import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.nio.file.Path;
-import java.util.List;
 
-public class Bot implements LongPollingUpdateConsumer {
+public class UpdateHandler {
 
-    private final TelegramClient botClient;
+    private final BotSync botClient;
+
 
     private final String supergroupType = "supergroup";
 
-    public Bot(String botToken) {
-        this.botClient = new OkHttpTelegramClient(botToken);
+    public UpdateHandler(BotSync botClient) {
+        this.botClient = botClient;
     }
 
-    @Override
-    public void consume(List<Update> updates) {
-        updates.forEach(this::consume);
-    }
-
-    private void consume(Update update) {
+    public void handle(Update update) {
         try {
             if (update.hasMessage() && supergroupType.equals(update.getMessage().getChat().getType())) {
                 handleGroupMessage(update.getMessage());
@@ -104,11 +94,7 @@ public class Bot implements LongPollingUpdateConsumer {
         SendMessage sendMessage = new SendMessage(message.getChatId().toString(), answerText);
         sendMessage.enableMarkdownV2(true);
         sendMessage.setMessageThreadId(message.getMessageThreadId());
-        try {
-            notificationMessageId = botClient.execute(sendMessage).getMessageId();
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
+        notificationMessageId = botClient.execute(sendMessage).getMessageId();
         return notificationMessageId;
     }
 
@@ -126,11 +112,7 @@ public class Bot implements LongPollingUpdateConsumer {
 
     private void deleteCurrentMessage(Message message) {
         DeleteMessage deleteMessage = new DeleteMessage(message.getChatId().toString(), message.getMessageId());
-        try {
-            botClient.execute(deleteMessage);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
+        botClient.execute(deleteMessage);
     }
 
     private Integer sendZippedMessageToRecycleTopic(String chatId, String senderUsername, String topicTitle) {
@@ -140,11 +122,7 @@ public class Bot implements LongPollingUpdateConsumer {
                 " #" + topicTitle + " " +
                 DateTimeService.getCurrentMskTime());
         sendDocument.setMessageThreadId(Parameters.getRecycleTopicId());
-        try {
-            Message sentMessage = botClient.execute(sendDocument);
-            return sentMessage.getMessageId();
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
-        }
+        Message sentMessage = botClient.execute(sendDocument);
+        return sentMessage.getMessageId();
     }
 }
