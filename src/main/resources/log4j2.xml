@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns="https://logging.apache.org/xml/ns"
+               xsi:schemaLocation="
+                       https://logging.apache.org/xml/ns
+                       https://logging.apache.org/xml/ns/log4j-config-2.xsd"
+                packages="io.gitlab.patbattb.moderant"
+                name="App">
+
+    <Appenders>
+        <Console name="CONSOLE">
+            <ThresholdFilter level="INFO"/>
+            <PatternLayout pattern="%d [%t] %5p %c{1.3*} - %m%n"/>
+        </Console>
+
+        <RollingFile name="FILE"
+                     fileName="app.log"
+                     filePattern="app.log.%i.gz">
+            <ThresholdFilter level="WARN"/>
+            <PatternLayout pattern="%d [%t] %5p %c{1.3*} - %m%n"/>
+            <DefaultRolloverStrategy max="5"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="1MB"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Root level="TRACE">
+            <AppenderRef ref="CONSOLE"/>
+            <AppenderRef ref="FILE"/>
+        </Root>
+    </Loggers>
+
+</Configuration>

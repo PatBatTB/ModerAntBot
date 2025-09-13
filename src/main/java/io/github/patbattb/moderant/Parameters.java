@@ -57,7 +57,6 @@ public class Parameters {
         initRestrictionTime(rootNode);
         initTopicsSettings(topicsNode);
         initDeleteMessageTime(rootNode);
-        System.out.println();
     }
 
     private static void initBotToken(JsonNode rootNode) {

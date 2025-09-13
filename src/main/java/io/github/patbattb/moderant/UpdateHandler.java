@@ -1,5 +1,6 @@
 package io.github.patbattb.moderant;
 
+import io.github.patbattb.moderant.database.UserMutingService;
 import io.github.patbattb.moderant.domain.ForumTopic;
 import io.github.patbattb.moderant.service.DateTimeService;
 import io.github.patbattb.moderant.service.FileService;
@@ -10,8 +11,11 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.Instant;
 
 public class UpdateHandler {
 
@@ -41,6 +45,13 @@ public class UpdateHandler {
         }
 
         Integer threadId = message.getMessageThreadId();
+        //TODO debug записывает время получения сообщения вместо мьюта
+        UserMutingService umService = new UserMutingService();
+        try {
+            umService.update(message.getFrom().getId(), message.getMessageThreadId(), Instant.now());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         //TODO сравнить ограничение пользователя по времени с разрешениями в данном топике (Нужна БД)
         ForumTopic topic = Parameters.getTopics().getOrDefault(threadId, ForumTopic.getDefault());
 
@@ -94,7 +105,11 @@ public class UpdateHandler {
         SendMessage sendMessage = new SendMessage(message.getChatId().toString(), answerText);
         sendMessage.enableMarkdownV2(true);
         sendMessage.setMessageThreadId(message.getMessageThreadId());
-        notificationMessageId = botClient.execute(sendMessage).getMessageId();
+        try {
+            notificationMessageId = botClient.execute(sendMessage).getMessageId();
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
         return notificationMessageId;
     }
 
@@ -112,7 +127,11 @@ public class UpdateHandler {
 
     private void deleteCurrentMessage(Message message) {
         DeleteMessage deleteMessage = new DeleteMessage(message.getChatId().toString(), message.getMessageId());
-        botClient.execute(deleteMessage);
+        try {
+            botClient.execute(deleteMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
     private Integer sendZippedMessageToRecycleTopic(String chatId, String senderUsername, String topicTitle) {
@@ -122,7 +141,12 @@ public class UpdateHandler {
                 " #" + topicTitle + " " +
                 DateTimeService.getCurrentMskTime());
         sendDocument.setMessageThreadId(Parameters.getRecycleTopicId());
-        Message sentMessage = botClient.execute(sendDocument);
+        Message sentMessage = null;
+        try {
+            sentMessage = botClient.execute(sendDocument);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
         return sentMessage.getMessageId();
     }
 }

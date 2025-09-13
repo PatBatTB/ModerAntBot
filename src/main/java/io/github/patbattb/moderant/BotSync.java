@@ -6,6 +6,7 @@ import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import java.io.Serializable;
@@ -32,27 +33,25 @@ public class BotSync implements LongPollingUpdateConsumer {
         }
     }
 
-    public <T extends Serializable> T execute(BotApiMethod<T> method) {
+    public <T extends Serializable> T execute(BotApiMethod<T> method) throws TelegramApiException {
         synchronized (SEND_LOCK) {
-            try {
-                Thread.sleep(50);
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 return botClient.execute(method);
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
         }
     }
     
-    public Message execute(SendDocument document) {
+    public Message execute(SendDocument document) throws TelegramApiException {
         synchronized (SEND_LOCK) {
             try {
                 Thread.sleep(50);
-                return botClient.execute(document);
-            } catch (Exception e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-                throw new RuntimeException(e);
             }
+            return botClient.execute(document);
         }
     }
 }
