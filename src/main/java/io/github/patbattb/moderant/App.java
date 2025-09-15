@@ -1,6 +1,7 @@
 package io.github.patbattb.moderant;
 
 import io.github.patbattb.moderant.database.SQLiteConnectionPool;
+import io.github.patbattb.moderant.service.DeletingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
@@ -15,14 +16,20 @@ public class App {
 
     public static void main(String[] args) {
         try (TelegramBotsLongPollingApplication tgApp = new TelegramBotsLongPollingApplication()) {
-        LOG.trace("App starts.");
-        LOG.trace("Parameters initialization starts.");
-        Parameters.init();
-        LOG.trace("Parameters initialization finish.");
-        startDB();
-        BotSync botSync = new BotSync(Parameters.getBotToken());
-        startBot(tgApp, botSync);
-        Thread.currentThread().join(0);
+            LOG.trace("App starts.");
+
+            LOG.trace("Parameters initialization starts.");
+            Parameters.init();
+            LOG.trace("Parameters initialization finish.");
+
+            startDB();
+
+            BotSync botSync = new BotSync(Parameters.getBotToken());
+            startBot(tgApp, botSync);
+
+            startDeletingService(botSync);
+
+            Thread.currentThread().join(0);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -45,6 +52,15 @@ public class App {
         } catch (SQLException e) {
             LOG.error("Database initialization failed.");
             throw new RuntimeException(e);
+        }
+    }
+
+    private static void startDeletingService(BotSync bot) {
+        DeletingService deletingService = new DeletingService(60 * 1000, bot);
+        try {
+            deletingService.runRepeatableDeleting();
+        } catch (Exception e) {
+            LOG.error("Error during runs deleting service", e);
         }
     }
 }

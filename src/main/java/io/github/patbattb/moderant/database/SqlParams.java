@@ -14,7 +14,7 @@ public final class SqlParams {
     public static final class MessageDeleteTable {
         public static final String TABLE_NAME = "message_delete";
         public static final String MESSAGE_ID_FIELD = "message_id";
-        public static final String TOPIC_ID_FIELD = "topic_id";
+        public static final String CHAT_ID_FIELD = "chat_id";
         public static final String DELETE_TIME_FIELD = "delete_time";
     }
 }

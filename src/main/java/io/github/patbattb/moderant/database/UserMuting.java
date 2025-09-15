@@ -1,13 +1,11 @@
 package io.github.patbattb.moderant.database;
 
-import java.time.Instant;
-
 public class UserMuting {
     private final long userId;
     private final int topicId;
-    private Instant unmuteTime;
+    private Integer unmuteTime;
 
-    public UserMuting (long userId, int topicId, Instant unmuteTime) {
+    public UserMuting (long userId, int topicId, Integer unmuteTime) {
         this.userId = userId;
         this.topicId = topicId;
         this.unmuteTime = unmuteTime;
@@ -21,11 +19,11 @@ public class UserMuting {
         return topicId;
     }
 
-    public Instant getUnmuteTime() {
+    public Integer getUnmuteTime() {
         return unmuteTime;
     }
 
-    public void setUnmuteTime(Instant unmuteTime) {
+    public void setUnmuteTime(Integer unmuteTime) {
         this.unmuteTime = unmuteTime;
     }
 }

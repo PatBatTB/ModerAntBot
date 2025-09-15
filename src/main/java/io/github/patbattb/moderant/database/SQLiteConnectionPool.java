@@ -45,18 +45,19 @@ public class SQLiteConnectionPool {
                     CREATE TABLE IF NOT EXISTS %s (
                     %s BIGINT,
                     %s INTEGER,
-                    %s TEXT NOT NULL,
+                    %s INTEGER,
                     PRIMARY KEY (%s, %s))
                     """, UserMutingTable.TABLE_NAME, UserMutingTable.USER_ID_FIELD, UserMutingTable.TOPIC_ID_FIELD,
                     UserMutingTable.UNMUTE_TIME_FIELD, UserMutingTable.USER_ID_FIELD, UserMutingTable.TOPIC_ID_FIELD));
             statement.execute(String.format("""
                     CREATE TABLE IF NOT EXISTS %s (
                     %s INTEGER,
+                    %s BIGINT,
                     %s INTEGER,
-                    %s TEXT NOT NULL,
                     PRIMARY KEY (%s, %s))
-                    """, MessageDeleteTable.TABLE_NAME, MessageDeleteTable.MESSAGE_ID_FIELD, MessageDeleteTable.TOPIC_ID_FIELD,
-                    MessageDeleteTable.DELETE_TIME_FIELD, MessageDeleteTable.MESSAGE_ID_FIELD, MessageDeleteTable.TOPIC_ID_FIELD));
+                    """, MessageDeleteTable.TABLE_NAME, MessageDeleteTable.MESSAGE_ID_FIELD,
+                    MessageDeleteTable.CHAT_ID_FIELD, MessageDeleteTable.DELETE_TIME_FIELD,
+                    MessageDeleteTable.MESSAGE_ID_FIELD, MessageDeleteTable.CHAT_ID_FIELD));
             statement.execute(String.format("""
                     CREATE INDEX IF NOT EXISTS idx_%s_%s ON %s(%s)
                     """, MessageDeleteTable.TABLE_NAME, MessageDeleteTable.DELETE_TIME_FIELD,

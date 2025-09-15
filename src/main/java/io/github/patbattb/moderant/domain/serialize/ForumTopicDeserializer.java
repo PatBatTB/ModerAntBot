@@ -26,7 +26,7 @@ public class ForumTopicDeserializer extends JsonDeserializer<ForumTopic> {
         Integer idValue = idNode instanceof NullNode ? null : rootNode.get(this.id).asInt();
         String titleValue = rootNode.get(this.title).asText();
         JsonNode mutingMinutesNode = rootNode.get(mutingMinutes);
-        Integer mutingMinutesValue = mutingMinutesNode == null ?
+        Integer mutingMinutesValue = (mutingMinutesNode == null) ?
                 null :
                 rootNode.get(this.mutingMinutes).asInt();
         JsonNode permissionsNode = rootNode.get(this.permissions);

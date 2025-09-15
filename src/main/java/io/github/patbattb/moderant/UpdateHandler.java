@@ -1,6 +1,6 @@
 package io.github.patbattb.moderant;
 
-import io.github.patbattb.moderant.database.UserMutingService;
+import io.github.patbattb.moderant.database.MessageDeleteService;
 import io.github.patbattb.moderant.domain.ForumTopic;
 import io.github.patbattb.moderant.service.DateTimeService;
 import io.github.patbattb.moderant.service.FileService;
@@ -15,7 +15,6 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.time.Instant;
 
 public class UpdateHandler {
 
@@ -39,45 +38,44 @@ public class UpdateHandler {
     }
 
     private void handleGroupMessage(Message message) {
-        if (isSystemMessage(message)) {
+        Integer threadId = message.getMessageThreadId() == null ? 1 : message.getMessageThreadId();
+        if (isSystemMessage(message) || threadId.equals(Parameters.getRecycleTopicId())) {
             deleteCurrentMessage(message);
             return;
         }
 
-        Integer threadId = message.getMessageThreadId();
-        //TODO debug записывает время получения сообщения вместо мьюта
-        UserMutingService umService = new UserMutingService();
-        try {
-            umService.update(message.getFrom().getId(), message.getMessageThreadId(), Instant.now());
-        } catch (SQLException e) {
-            e.printStackTrace();
+        ForumTopic topic = Parameters.getTopics().get(threadId);
+        if (topic == null || !topic.verifyPermissions(message)) {
+            handleRestrictedMessage(message, topic);
+            return;
         }
-        //TODO сравнить ограничение пользователя по времени с разрешениями в данном топике (Нужна БД)
-        ForumTopic topic = Parameters.getTopics().getOrDefault(threadId, ForumTopic.getDefault());
+
+        if (!DateTimeService.verifyMutingTime(message.getFrom().getId(), topic.getId(), message.getDate()))
+        {
+            handleRestrictedMessage(message, topic);
+            return;
+        }
 
         //TODO проверить ограничения по смайликам
 
-        if (!topic.verifyPermissions(message)) {
-            handleRestrictedMessage(message, topic);
-        }
+        DateTimeService.recordMutingTime(message.getFrom().getId(), topic, message.getDate());
+
     }
 
     private void handleRestrictedMessage(Message message, ForumTopic topic) {
-        Integer recycleMessageId = null;
-        Integer notificationMessageId = null;
         if (!Parameters.getRecycleTopicId().equals(message.getMessageThreadId())) {
+            Message recycleMessage = null;
             if (message.hasText() || message.hasCaption()) {
-                recycleMessageId = recyclingMessage(message, topic.getTitle());
-                //TODO записываем в базу ИД отправленного сообщения и топик (нужна БД)
+                String topicTitle = (topic == null) ? "unknown": topic.getTitle();
+                recycleMessage = recyclingMessage(message, topicTitle);
+                recordDeleteMessageTime(recycleMessage, Parameters.getDeleteRecycleMinutes());
             }
-            notificationMessageId = sendRecyclingNotification(message, recycleMessageId);
-            //TODO записываем ид сообщения в базу
+            Integer recycleMessageId = (recycleMessage == null) ? null : recycleMessage.getMessageId();
+            Message notificationMessage = sendRecyclingNotification(message, recycleMessageId);
+            recordDeleteMessageTime(notificationMessage, Parameters.getDeleteTopicMinutes());
         }
 
         deleteCurrentMessage(message);
-
-        //TODO планируем удаление основного сообщение через n минут (из конфига)
-        //TODO планируем удаление сообщения из корзины через m минут (из конфига)
     }
 
     private boolean isSystemMessage(Message message) {
@@ -85,17 +83,17 @@ public class UpdateHandler {
                 message.getForumTopicReopened() != null;
     }
 
-    private Integer recyclingMessage(Message message, String topicTitle) {
+    private Message recyclingMessage(Message message, String topicTitle) {
         String messageText = getTextFromMessage(message);
         FileService.zipMessageText(messageText);
-        Integer recycleMessageId = sendZippedMessageToRecycleTopic(
+        Message recycleMessage = sendZippedMessageToRecycleTopic(
                 message.getChatId().toString(), message.getFrom().getUserName(), topicTitle);
         FileService.deleteZipFromDisk();
-        return recycleMessageId;
+        return recycleMessage;
     }
 
-    private Integer sendRecyclingNotification(Message message, Integer recycleMessageId) {
-        Integer notificationMessageId = null;
+    private Message sendRecyclingNotification(Message message, Integer recycleMessageId) {
+        Message notificationMessage = null;
         String answerText = "@" + message.getFrom().getUserName() +
                 " Ваше сообщение было удалено из\\-за нарушения требований топика\\.";
         if (recycleMessageId != null) {
@@ -106,11 +104,11 @@ public class UpdateHandler {
         sendMessage.enableMarkdownV2(true);
         sendMessage.setMessageThreadId(message.getMessageThreadId());
         try {
-            notificationMessageId = botClient.execute(sendMessage).getMessageId();
+            notificationMessage = botClient.execute(sendMessage);
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
-        return notificationMessageId;
+        return notificationMessage;
     }
 
     private String getTextFromMessage(Message message) {
@@ -134,7 +132,7 @@ public class UpdateHandler {
         }
     }
 
-    private Integer sendZippedMessageToRecycleTopic(String chatId, String senderUsername, String topicTitle) {
+    private Message sendZippedMessageToRecycleTopic(String chatId, String senderUsername, String topicTitle) {
         InputFile file = new InputFile(Path.of(FileService.ZIP_FILE_NAME).toFile());
         SendDocument sendDocument = new SendDocument(chatId, file);
         sendDocument.setCaption("@" + senderUsername +
@@ -147,6 +145,20 @@ public class UpdateHandler {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
-        return sentMessage.getMessageId();
+        return sentMessage;
     }
+
+    private void recordDeleteMessageTime(Message message, int deleteMinutes) {
+        try {
+            if (message == null) {
+                throw new NullPointerException();
+            }
+            MessageDeleteService dbService = new MessageDeleteService();
+            int deleteTime = message.getDate() + (deleteMinutes * 60);
+            dbService.insert(message.getMessageId(), message.getChatId(), deleteTime);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }

@@ -12,25 +12,37 @@ import java.util.HashMap;
 
 public class Parameters {
     private static final HashMap<Integer, ForumTopic> TOPICS = new HashMap<>();
-    //TODO change to working path.
-    private static final Path SETTINGS_FILE = Path.of("testData", "settings.json");
+    private static final Path SETTINGS_FILE = Path.of("settings.json");
 
     //Json field's names
     private final static String TOPICS_FIELD_NAME = "topics";
     private final static String BOT_TOKEN_FIELD_NAME = "botToken";
     private final static String RECYCLE_ID_FIELD_NAME = "recycleId";
-    private final static String RESTRICTION_MINUTES_FIELD_NAME = "restrictionMinutes";
+    private final static String MUTING_MINUTES_FIELD_NAME = "mutingMinutes";
     private final static String DELETE_TOPIC_MINUTES_FIELD_NAME = "deleteTopicMinutes";
     private final static String DELETE_RECYCLE_MINUTES_FIELD_NAME = "deleteRecycleMinutes";
 
     private static Integer recycleTopicId;
     private static String botToken;
+
     private static Integer defaultMutingMinutes;
+
     private static Integer deleteTopicMinutes = 5; //by default
     private static Integer deleteRecycleMinutes = 10; //by default
-
     public static HashMap<Integer, ForumTopic> getTopics() {
         return TOPICS;
+    }
+
+    public static Integer getDefaultMutingMinutes() {
+        return defaultMutingMinutes;
+    }
+
+    public static Integer getDeleteTopicMinutes() {
+        return deleteTopicMinutes;
+    }
+
+    public static Integer getDeleteRecycleMinutes() {
+        return deleteRecycleMinutes;
     }
 
     public static Integer getRecycleTopicId() {
@@ -72,17 +84,17 @@ public class Parameters {
     }
 
     private static void initRestrictionTime(JsonNode rootNode) {
-        JsonNode restrictionTimeNode = rootNode.get(RESTRICTION_MINUTES_FIELD_NAME);
+        JsonNode restrictionTimeNode = rootNode.get(MUTING_MINUTES_FIELD_NAME);
         if (restrictionTimeNode == null) {
             defaultMutingMinutes = null;
             return;
         }
         if (!restrictionTimeNode.isInt()) {
-            throw new RuntimeException("You need to specify integer object '"+RESTRICTION_MINUTES_FIELD_NAME+"' in the config file.");
+            throw new RuntimeException("You need to specify integer object '"+ MUTING_MINUTES_FIELD_NAME +"' in the config file.");
         }
         int value = restrictionTimeNode.asInt();
         if (value < 0) {
-            throw new RuntimeException("The object '"+RESTRICTION_MINUTES_FIELD_NAME+"' in the config file must be positive number");
+            throw new RuntimeException("The object '"+ MUTING_MINUTES_FIELD_NAME +"' in the config file must be positive number");
         }
         defaultMutingMinutes = value;
     }
@@ -95,7 +107,6 @@ public class Parameters {
                 TOPICS.put(topic.getId(), topic);
             }
         }
-        System.out.println();
     }
 
     private static void initDeleteMessageTime(JsonNode rootNode) {

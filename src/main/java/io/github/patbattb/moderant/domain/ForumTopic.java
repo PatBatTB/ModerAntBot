@@ -1,6 +1,7 @@
 package io.github.patbattb.moderant.domain;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.github.patbattb.moderant.Parameters;
 import io.github.patbattb.moderant.domain.serialize.ForumTopicDeserializer;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
@@ -29,7 +30,7 @@ public class ForumTopic {
     }
 
     public Integer getMutingMinutes() {
-        return mutingMinutes;
+        return mutingMinutes == null ? Parameters.getDefaultMutingMinutes() : mutingMinutes;
     }
 
     public boolean verifyPermissions(Message message) {
