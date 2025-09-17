@@ -3,6 +3,8 @@ package io.github.patbattb.moderant.service;
 import io.github.patbattb.moderant.BotSync;
 import io.github.patbattb.moderant.database.MessageDelete;
 import io.github.patbattb.moderant.database.MessageDeleteService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessages;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -14,6 +16,7 @@ public class DeletingService {
 
     private final int repeatingMillis;
     private final BotSync bot;
+    private final Logger log = LogManager.getLogger(DeletingService.class);
 
     public DeletingService(int repeatingMillis, BotSync bot) {
         this.repeatingMillis = repeatingMillis;
@@ -37,7 +40,7 @@ public class DeletingService {
         try {
             messages = dbService.getMessagesForDelete((int) Instant.now().getEpochSecond());
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error(e);
         }
         HashMap<Long, List<Integer>> chatMap = new HashMap<>();
         for(MessageDelete message: messages) {
@@ -53,7 +56,7 @@ public class DeletingService {
                     dbService.delete(id, entry.getKey());
                 }
             } catch (TelegramApiException | SQLException e) {
-                e.printStackTrace();
+                log.error(e);
             }
         }
     }

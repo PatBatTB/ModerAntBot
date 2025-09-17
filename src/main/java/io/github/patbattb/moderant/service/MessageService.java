@@ -2,6 +2,8 @@ package io.github.patbattb.moderant.service;
 
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
+import java.util.List;
+
 public class MessageService {
 
     public static String getMessageLink(Message message, Integer recycleTopicId, Integer recycleMessageId) {
@@ -13,5 +15,15 @@ public class MessageService {
             groupId = groupId.substring(1);
         }
         return mask + groupId + "/" + recycleTopicId + "/" + recycleMessageId;
+    }
+
+    public static String escapingString(String text) {
+        List<String> symbols = List.of(".", "-", "\"");
+        for (String symbol : symbols) {
+            if (text.contains(symbol)) {
+                text = text.replace(symbol, "\\" + symbol);
+            }
+        }
+        return text;
     }
 }

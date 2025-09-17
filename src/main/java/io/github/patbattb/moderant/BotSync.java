@@ -1,5 +1,7 @@
 package io.github.patbattb.moderant;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.interfaces.LongPollingUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethod;
@@ -19,6 +21,7 @@ public class BotSync implements LongPollingUpdateConsumer {
     private final TelegramClient botClient;
     private final ExecutorService executorService;
     private final UpdateHandler updateHandler;
+    private final Logger log = LogManager.getLogger(BotSync.class);
     private static final Object SEND_LOCK = new Object();
 
     public BotSync(String botToken) {
@@ -38,7 +41,7 @@ public class BotSync implements LongPollingUpdateConsumer {
                 try {
                     Thread.sleep(50);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.error(e);
                 }
                 return botClient.execute(method);
         }
@@ -49,7 +52,7 @@ public class BotSync implements LongPollingUpdateConsumer {
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                log.error(e);
             }
             return botClient.execute(document);
         }

@@ -2,9 +2,13 @@ package io.github.patbattb.moderant;
 
 import io.github.patbattb.moderant.database.MessageDeleteService;
 import io.github.patbattb.moderant.domain.ForumTopic;
+import io.github.patbattb.moderant.domain.VerifyResult;
 import io.github.patbattb.moderant.service.DateTimeService;
 import io.github.patbattb.moderant.service.FileService;
 import io.github.patbattb.moderant.service.MessageService;
+import io.github.patbattb.moderant.service.TopicService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
@@ -14,13 +18,11 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.nio.file.Path;
-import java.sql.SQLException;
 
 public class UpdateHandler {
 
     private final BotSync botClient;
-
-
+    private final Logger log = LogManager.getLogger(UpdateHandler.class);
     private final String supergroupType = "supergroup";
 
     public UpdateHandler(BotSync botClient) {
@@ -33,7 +35,7 @@ public class UpdateHandler {
                 handleGroupMessage(update.getMessage());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 
@@ -45,14 +47,21 @@ public class UpdateHandler {
         }
 
         ForumTopic topic = Parameters.getTopics().get(threadId);
-        if (topic == null || !topic.verifyPermissions(message)) {
-            handleRestrictedMessage(message, topic);
+        if (topic == null) {
+            handleRestrictedMessage(message, topic, "Запрещены любые сообщения.");
             return;
         }
 
-        if (!DateTimeService.verifyMutingTime(message.getFrom().getId(), topic.getId(), message.getDate()))
+        VerifyResult verifyResult = TopicService.verifyPermissions(topic, message);
+        if (!verifyResult.isApproved()) {
+            handleRestrictedMessage(message, topic, verifyResult.cause());
+             return;
+        }
+
+        verifyResult = DateTimeService.verifyMutingTime(message.getFrom().getId(), topic.getId(), message.getDate());
+        if (!verifyResult.isApproved())
         {
-            handleRestrictedMessage(message, topic);
+            handleRestrictedMessage(message, topic, verifyResult.cause());
             return;
         }
 
@@ -62,7 +71,7 @@ public class UpdateHandler {
 
     }
 
-    private void handleRestrictedMessage(Message message, ForumTopic topic) {
+    private void handleRestrictedMessage(Message message, ForumTopic topic, String cause) {
         if (!Parameters.getRecycleTopicId().equals(message.getMessageThreadId())) {
             Message recycleMessage = null;
             if (message.hasText() || message.hasCaption()) {
@@ -71,7 +80,7 @@ public class UpdateHandler {
                 recordDeleteMessageTime(recycleMessage, Parameters.getDeleteRecycleMinutes());
             }
             Integer recycleMessageId = (recycleMessage == null) ? null : recycleMessage.getMessageId();
-            Message notificationMessage = sendRecyclingNotification(message, recycleMessageId);
+            Message notificationMessage = sendRecyclingNotification(message, recycleMessageId, cause);
             recordDeleteMessageTime(notificationMessage, Parameters.getDeleteTopicMinutes());
         }
 
@@ -92,21 +101,27 @@ public class UpdateHandler {
         return recycleMessage;
     }
 
-    private Message sendRecyclingNotification(Message message, Integer recycleMessageId) {
+    private Message sendRecyclingNotification(Message message, Integer recycleMessageId, String cause) {
         Message notificationMessage = null;
         String answerText = "@" + message.getFrom().getUserName() +
-                " Ваше сообщение было удалено из\\-за нарушения требований топика\\.";
+                " Ваше сообщение было удалено из-за нарушения правил топика:";
+        if (cause != null && !cause.isBlank()) {
+            answerText += "\n\"" + cause + "\"";
+        }
         if (recycleMessageId != null) {
             String messageLink = MessageService.getMessageLink(message, Parameters.getRecycleTopicId(), recycleMessageId);
-            answerText += "\nЕго текст временно [доступен в корзине](" + messageLink + ")\\.";
+            answerText += "\nТекст сообщения временно [доступен в корзине](" + messageLink + ").";
         }
-        SendMessage sendMessage = new SendMessage(message.getChatId().toString(), answerText);
+        answerText = MessageService.escapingString(answerText);
+        SendMessage sendMessage = new SendMessage(
+                message.getChatId().toString(), answerText
+        );
         sendMessage.enableMarkdownV2(true);
         sendMessage.setMessageThreadId(message.getMessageThreadId());
         try {
             notificationMessage = botClient.execute(sendMessage);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            log.error(e);
         }
         return notificationMessage;
     }
@@ -128,7 +143,7 @@ public class UpdateHandler {
         try {
             botClient.execute(deleteMessage);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 
@@ -143,7 +158,7 @@ public class UpdateHandler {
         try {
             sentMessage = botClient.execute(sendDocument);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            log.error(e);
         }
         return sentMessage;
     }
@@ -157,7 +172,7 @@ public class UpdateHandler {
             int deleteTime = message.getDate() + (deleteMinutes * 60);
             dbService.insert(message.getMessageId(), message.getChatId(), deleteTime);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 

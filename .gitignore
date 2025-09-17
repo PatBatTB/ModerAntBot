@@ -7,6 +7,7 @@ target/
 .idea/
 testData/info.txt
 testData/
+settings.json
 *.db
 *.log
 

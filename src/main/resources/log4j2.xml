@@ -16,7 +16,7 @@
         <RollingFile name="FILE"
                      fileName="app.log"
                      filePattern="app.log.%i.gz">
-            <ThresholdFilter level="WARN"/>
+            <ThresholdFilter level="INFO"/>
             <PatternLayout pattern="%d [%t] %5p %c{1.3*} - %m%n"/>
             <DefaultRolloverStrategy max="5"/>
             <Policies>
@@ -26,10 +26,12 @@
     </Appenders>
 
     <Loggers>
-        <Root level="TRACE">
+        <Root level="WARN">
             <AppenderRef ref="CONSOLE"/>
             <AppenderRef ref="FILE"/>
         </Root>
+        <Logger name="io.github.patbattb" level="INFO">
+        </Logger>
     </Loggers>
 
 </Configuration>

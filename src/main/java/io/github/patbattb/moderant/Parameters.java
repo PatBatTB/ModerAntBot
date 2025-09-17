@@ -29,6 +29,7 @@ public class Parameters {
 
     private static Integer deleteTopicMinutes = 5; //by default
     private static Integer deleteRecycleMinutes = 10; //by default
+
     public static HashMap<Integer, ForumTopic> getTopics() {
         return TOPICS;
     }
