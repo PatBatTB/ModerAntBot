@@ -5,6 +5,11 @@ target/
 
 ### IntelliJ IDEA ###
 .idea/
+testData/info.txt
+testData/
+settings.json
+*.db
+*.log
 
 ### Eclipse ###
 .apt_generated
