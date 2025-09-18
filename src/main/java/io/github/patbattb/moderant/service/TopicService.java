@@ -1,15 +1,15 @@
 package io.github.patbattb.moderant.service;
 
 import io.github.patbattb.moderant.domain.ForumTopic;
-import io.github.patbattb.moderant.domain.VerifyResult;
+import io.github.patbattb.moderant.domain.VerificationResult;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 public class TopicService {
 
-    private static final VerifyResult approvedResult = new VerifyResult(true, "");
+    private static final VerificationResult approvedResult = new VerificationResult(true, "");
 
-    public static VerifyResult verifyPermissions(ForumTopic topic, Message message) {
-        VerifyResult result = approvedResult;
+    public static VerificationResult verifyPermissions(ForumTopic topic, Message message) {
+        VerificationResult result = approvedResult;
         if (message.hasAnimation() && result.isApproved()) {
             result = verifyAnimation(topic);
         }
@@ -40,57 +40,57 @@ public class TopicService {
         return result;
     }
 
-    private static VerifyResult verifyAnimation(ForumTopic topic) {
+    private static VerificationResult verifyAnimation(ForumTopic topic) {
         return !topic.getPermissions().isAnimation() ?
-                new VerifyResult(false, "Запрещена анимация в сообщениях.") :
+                new VerificationResult(false, "Запрещена анимация в сообщениях.") :
                 approvedResult;
     }
 
-    private static VerifyResult verifyAudio(ForumTopic topic) {
+    private static VerificationResult verifyAudio(ForumTopic topic) {
         return !topic.getPermissions().isAudio() ?
-                new VerifyResult(false, "Запрещено аудио.") :
+                new VerificationResult(false, "Запрещено аудио.") :
                 approvedResult;
     }
 
-    private static VerifyResult verifyContact(ForumTopic topic) {
+    private static VerificationResult verifyContact(ForumTopic topic) {
         return !topic.getPermissions().isContact() ?
-                new VerifyResult(false, "Запрещена отправка контактов.") :
+                new VerificationResult(false, "Запрещена отправка контактов.") :
                 approvedResult;
     }
 
-    private static VerifyResult verifyDocument(ForumTopic topic) {
+    private static VerificationResult verifyDocument(ForumTopic topic) {
         return !topic.getPermissions().isDocument() ?
-                new VerifyResult(false, "Запрещены видео.") :
+                new VerificationResult(false, "Запрещены видео.") :
                 approvedResult;
     }
 
-    private static VerifyResult verifyLocation(ForumTopic topic) {
+    private static VerificationResult verifyLocation(ForumTopic topic) {
         return !topic.getPermissions().isLocation() ?
-                new VerifyResult(false, "Запрещена передача геолокации.") :
+                new VerificationResult(false, "Запрещена передача геолокации.") :
                 approvedResult;
     }
 
-    private static VerifyResult verifyText(ForumTopic topic) {
+    private static VerificationResult verifyText(ForumTopic topic) {
         return !topic.getPermissions().isText() ?
-                new VerifyResult(false, "Запрещены текстовые сообщения.") :
+                new VerificationResult(false, "Запрещены текстовые сообщения.") :
                 approvedResult;
     }
 
-    private static VerifyResult verifyPhoto(ForumTopic topic) {
+    private static VerificationResult verifyPhoto(ForumTopic topic) {
         return !topic.getPermissions().isPhoto() ?
-                new VerifyResult(false, "Запрещены фото.") :
+                new VerificationResult(false, "Запрещены фото.") :
                 approvedResult;
     }
 
-    private static VerifyResult verifySticker(ForumTopic topic) {
+    private static VerificationResult verifySticker(ForumTopic topic) {
         return !topic.getPermissions().isSticker() ?
-                new VerifyResult(false, "Запрещены стикеры.") :
+                new VerificationResult(false, "Запрещены стикеры.") :
                 approvedResult;
     }
 
-    private static VerifyResult verifyVideo(ForumTopic topic) {
+    private static VerificationResult verifyVideo(ForumTopic topic) {
         return !topic.getPermissions().isVideo() ?
-                new VerifyResult(false, "Запрещены видео.") :
+                new VerificationResult(false, "Запрещены видео.") :
                 approvedResult;
     }
 }

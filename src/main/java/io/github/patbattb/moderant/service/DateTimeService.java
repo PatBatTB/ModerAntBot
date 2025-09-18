@@ -2,7 +2,7 @@ package io.github.patbattb.moderant.service;
 
 import io.github.patbattb.moderant.database.UserMutingService;
 import io.github.patbattb.moderant.domain.ForumTopic;
-import io.github.patbattb.moderant.domain.VerifyResult;
+import io.github.patbattb.moderant.domain.VerificationResult;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,9 +18,9 @@ public class DateTimeService {
 
     private static final Logger LOG = LogManager.getLogger(DateTimeService.class);
     private static final ZoneId ZONE_ID = ZoneId.of("+3");
-    private static final VerifyResult approvedResult = new VerifyResult(true, "");
+    private static final VerificationResult approvedResult = new VerificationResult(true, "");
 
-     public static VerifyResult verifyMutingTime(long userId, Integer topicId, int messageDate) {
+     public static VerificationResult verifyMutingTime(long userId, Integer topicId, int messageDate) {
          UserMutingService dbService = new UserMutingService();
          Optional<Integer> unmuteTimeOptional;
          try {
@@ -33,11 +33,11 @@ public class DateTimeService {
              return approvedResult;
          }
          ZonedDateTime unmuteTime = ZonedDateTime.ofInstant(Instant.ofEpochSecond(unmuteTimeOptional.get()), ZONE_ID);
-         String dateString = unmuteTime.format(DateTimeFormatter.ofPattern("dd.MM.yy HH:mm"));
+         String dateString = unmuteTime.plusMinutes(1).format(DateTimeFormatter.ofPattern("dd.MM.yy HH:mm"));
          String cause = String.format(
                  "Действует ограничение по времени. Следующее сообщение вы можете отправить не ранее %s",
                  dateString);
-         return new VerifyResult(false, cause);
+         return new VerificationResult(false, cause);
      }
 
      public static void recordMutingTime(long userId, ForumTopic topic, int messageDate) {
