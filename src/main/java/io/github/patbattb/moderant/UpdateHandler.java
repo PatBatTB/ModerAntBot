@@ -2,7 +2,7 @@ package io.github.patbattb.moderant;
 
 import io.github.patbattb.moderant.database.MessageDeleteService;
 import io.github.patbattb.moderant.domain.ForumTopic;
-import io.github.patbattb.moderant.domain.VerifyResult;
+import io.github.patbattb.moderant.domain.VerificationResult;
 import io.github.patbattb.moderant.service.DateTimeService;
 import io.github.patbattb.moderant.service.FileService;
 import io.github.patbattb.moderant.service.MessageService;
@@ -48,20 +48,20 @@ public class UpdateHandler {
 
         ForumTopic topic = Parameters.getTopics().get(threadId);
         if (topic == null) {
-            handleRestrictedMessage(message, topic, "Запрещены любые сообщения.");
+            handleRestrictedMessage(message, null, "Запрещены любые сообщения.");
             return;
         }
 
-        VerifyResult verifyResult = TopicService.verifyPermissions(topic, message);
-        if (!verifyResult.isApproved()) {
-            handleRestrictedMessage(message, topic, verifyResult.cause());
+        VerificationResult verificationResult = TopicService.verifyPermissions(topic, message);
+        if (!verificationResult.isApproved()) {
+            handleRestrictedMessage(message, topic, verificationResult.cause());
              return;
         }
 
-        verifyResult = DateTimeService.verifyMutingTime(message.getFrom().getId(), topic.getId(), message.getDate());
-        if (!verifyResult.isApproved())
+        verificationResult = DateTimeService.verifyMutingTime(message.getFrom().getId(), topic.getId(), message.getDate());
+        if (!verificationResult.isApproved())
         {
-            handleRestrictedMessage(message, topic, verifyResult.cause());
+            handleRestrictedMessage(message, topic, verificationResult.cause());
             return;
         }
 
@@ -75,8 +75,7 @@ public class UpdateHandler {
         if (!Parameters.getRecycleTopicId().equals(message.getMessageThreadId())) {
             Message recycleMessage = null;
             if (message.hasText() || message.hasCaption()) {
-                String topicTitle = (topic == null) ? "unknown": topic.getTitle();
-                recycleMessage = recyclingMessage(message, topicTitle);
+                recycleMessage = recyclingMessage(message, topic);
                 recordDeleteMessageTime(recycleMessage, Parameters.getDeleteRecycleMinutes());
             }
             Integer recycleMessageId = (recycleMessage == null) ? null : recycleMessage.getMessageId();
@@ -92,11 +91,12 @@ public class UpdateHandler {
                 message.getForumTopicReopened() != null;
     }
 
-    private Message recyclingMessage(Message message, String topicTitle) {
+    private Message recyclingMessage(Message message, ForumTopic topic) {
         String messageText = getTextFromMessage(message);
         FileService.zipMessageText(messageText);
         Message recycleMessage = sendZippedMessageToRecycleTopic(
-                message.getChatId().toString(), message.getFrom().getUserName(), topicTitle);
+                message, message.getFrom().getUserName(), topic
+        );
         FileService.deleteZipFromDisk();
         return recycleMessage;
     }
@@ -108,16 +108,19 @@ public class UpdateHandler {
         if (cause != null && !cause.isBlank()) {
             answerText += "\n\"" + cause + "\"";
         }
-        if (recycleMessageId != null) {
-            String messageLink = MessageService.getMessageLink(message, Parameters.getRecycleTopicId(), recycleMessageId);
-            answerText += "\nТекст сообщения временно [доступен в корзине](" + messageLink + ").";
-        }
         answerText = MessageService.escapingString(answerText);
+        if (recycleMessageId != null) {
+            String messageLink = MessageService.getMessageLink(
+                    message.getChatId().toString(), Parameters.getRecycleTopicId(), recycleMessageId
+            );
+            answerText += "\nТекст сообщения временно [доступен в корзине](" + messageLink + ")";
+        }
         SendMessage sendMessage = new SendMessage(
                 message.getChatId().toString(), answerText
         );
         sendMessage.enableMarkdownV2(true);
         sendMessage.setMessageThreadId(message.getMessageThreadId());
+        sendMessage.setDisableNotification(true);
         try {
             notificationMessage = botClient.execute(sendMessage);
         } catch (TelegramApiException e) {
@@ -147,13 +150,29 @@ public class UpdateHandler {
         }
     }
 
-    private Message sendZippedMessageToRecycleTopic(String chatId, String senderUsername, String topicTitle) {
+    private Message sendZippedMessageToRecycleTopic(Message message, String senderUsername, ForumTopic topic) {
         InputFile file = new InputFile(Path.of(FileService.ZIP_FILE_NAME).toFile());
+        String chatId = message.getChatId().toString();
+        Integer topicId;
+        String topicTitle;
+        if (topic == null) {
+            topicId = (message.getMessageThreadId() == null) ? 1 : message.getMessageThreadId();
+            topicTitle = "unknown";
+        } else {
+            topicId = topic.getId();
+            topicTitle = topic.getTitle();
+        }
         SendDocument sendDocument = new SendDocument(chatId, file);
-        sendDocument.setCaption("@" + senderUsername +
-                " #" + topicTitle + " " +
-                DateTimeService.getCurrentMskTime());
+        String escapedSenderUserName = MessageService.escapingString(senderUsername);
+        String escapedTopicTitle = MessageService.escapingString(topicTitle);
+        String topicLink = MessageService.getTopicLink(chatId, topicId);
+        sendDocument.setCaption(
+                "@" + escapedSenderUserName + " [" + escapedTopicTitle + "]" +
+                        "(" + topicLink + ") " + DateTimeService.getCurrentMskTime()
+        );
         sendDocument.setMessageThreadId(Parameters.getRecycleTopicId());
+        sendDocument.setParseMode("MarkdownV2");
+        sendDocument.setDisableNotification(true);
         Message sentMessage = null;
         try {
             sentMessage = botClient.execute(sendDocument);
