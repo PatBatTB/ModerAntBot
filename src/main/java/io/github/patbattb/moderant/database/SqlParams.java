@@ -1,7 +1,7 @@
 package io.github.patbattb.moderant.database;
 
 public final class SqlParams {
-    public static final String DB_FILE_NAME = "test.db";
+    public static final String DB_FILE_NAME = "database.db";
     public static final int DEFAULT_QUERY_TIMEOUT = 5;
 
     public static final class UserMutingTable {
