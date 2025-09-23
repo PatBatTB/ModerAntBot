@@ -4,7 +4,7 @@
                xsi:schemaLocation="
                        https://logging.apache.org/xml/ns
                        https://logging.apache.org/xml/ns/log4j-config-2.xsd"
-                packages="io.gitlab.patbattb.moderant"
+                packages="io.github.patbattb.moderant"
                 name="App">
 
     <Appenders>
