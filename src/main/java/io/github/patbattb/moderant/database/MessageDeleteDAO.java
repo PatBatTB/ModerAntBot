@@ -9,6 +9,7 @@ import java.util.List;
 import static io.github.patbattb.moderant.database.SqlParams.MessageDeleteTable.*;
 
 public class MessageDeleteDAO {
+
     List<MessageDelete> getMessagesForDelete(Integer unixTime) throws SQLException {
         String sql = String.format("SELECT * FROM %s WHERE %s < ?",
                 TABLE_NAME, DELETE_TIME_FIELD);
