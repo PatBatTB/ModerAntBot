@@ -24,6 +24,7 @@ public class UpdateHandler {
     private final BotSync botClient;
     private final Logger log = LogManager.getLogger(UpdateHandler.class);
     private final String supergroupType = "supergroup";
+    private final Object lock = new Object();
 
     public UpdateHandler(BotSync botClient) {
         this.botClient = botClient;
@@ -81,9 +82,8 @@ public class UpdateHandler {
             Integer recycleMessageId = (recycleMessage == null) ? null : recycleMessage.getMessageId();
             Message notificationMessage = sendRecyclingNotification(message, recycleMessageId, cause);
             recordDeleteMessageTime(notificationMessage, Parameters.getDeleteTopicMinutes());
+            deleteCurrentMessage(message);
         }
-
-        deleteCurrentMessage(message);
     }
 
     private boolean isSystemMessage(Message message) {
@@ -92,13 +92,15 @@ public class UpdateHandler {
     }
 
     private Message recyclingMessage(Message message, ForumTopic topic) {
-        String messageText = getTextFromMessage(message);
-        FileService.zipMessageText(messageText);
-        Message recycleMessage = sendZippedMessageToRecycleTopic(
-                message, message.getFrom().getUserName(), topic
-        );
-        FileService.deleteZipFromDisk();
-        return recycleMessage;
+        synchronized (lock) {
+            String messageText = getTextFromMessage(message);
+            FileService.zipMessageText(messageText);
+            Message recycleMessage = sendZippedMessageToRecycleTopic(
+                    message, message.getFrom().getUserName(), topic
+            );
+            FileService.deleteZipFromDisk();
+            return recycleMessage;
+        }
     }
 
     private Message sendRecyclingNotification(Message message, Integer recycleMessageId, String cause) {
@@ -123,7 +125,7 @@ public class UpdateHandler {
         sendMessage.setDisableNotification(true);
         try {
             notificationMessage = botClient.execute(sendMessage);
-        } catch (TelegramApiException e) {
+        } catch (TelegramApiException | InterruptedException e) {
             log.error(e);
         }
         return notificationMessage;
@@ -145,7 +147,7 @@ public class UpdateHandler {
         DeleteMessage deleteMessage = new DeleteMessage(message.getChatId().toString(), message.getMessageId());
         try {
             botClient.execute(deleteMessage);
-        } catch (TelegramApiException e) {
+        } catch (TelegramApiException | InterruptedException e) {
             log.error(e);
         }
     }
@@ -176,7 +178,7 @@ public class UpdateHandler {
         Message sentMessage = null;
         try {
             sentMessage = botClient.execute(sendDocument);
-        } catch (TelegramApiException e) {
+        } catch (TelegramApiException | InterruptedException e) {
             log.error(e);
         }
         return sentMessage;

@@ -15,21 +15,20 @@ public class App {
     private static final Logger LOG = LogManager.getLogger(App.class);
 
     public static void main(String[] args) {
-        try (TelegramBotsLongPollingApplication tgApp = new TelegramBotsLongPollingApplication()) {
-            LOG.trace("App starts.");
+        LOG.trace("App starts.");
 
-            LOG.trace("Parameters initialization starts.");
-            Parameters.init();
-            LOG.trace("Parameters initialization finish.");
+        LOG.trace("Parameters initialization starts.");
+        Parameters.init();
+        LOG.trace("Parameters initialization finish.");
 
-            startDB();
-
+        try (TelegramBotsLongPollingApplication tgApp = new TelegramBotsLongPollingApplication())
+        {
             BotSync botSync = new BotSync(Parameters.getBotToken());
+            startDB();
             startBot(tgApp, botSync);
-
             startDeletingService(botSync);
 
-            Thread.currentThread().join(0);
+            Thread.currentThread().join();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

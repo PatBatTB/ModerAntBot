@@ -55,7 +55,7 @@ public class DeletingService {
                 for (Integer id: entry.getValue()) {
                     dbService.delete(id, entry.getKey());
                 }
-            } catch (TelegramApiException | SQLException e) {
+            } catch (TelegramApiException | InterruptedException | SQLException e) {
                 log.error(e);
             }
         }
