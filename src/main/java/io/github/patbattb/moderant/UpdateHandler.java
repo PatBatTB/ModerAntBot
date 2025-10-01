@@ -18,13 +18,16 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.nio.file.Path;
+import java.time.Instant;
 
 public class UpdateHandler {
 
     private final BotSync botClient;
     private final Logger log = LogManager.getLogger(UpdateHandler.class);
     private final String supergroupType = "supergroup";
-    private final Object lock = new Object();
+    private final String adminStatus = "administrator";
+    private final Object IOlock = new Object();
+    private final Object startDateLock = new Object();
 
     public UpdateHandler(BotSync botClient) {
         this.botClient = botClient;
@@ -32,6 +35,11 @@ public class UpdateHandler {
 
     public void handle(Update update) {
         try {
+            synchronized (startDateLock) {
+                if (update.hasMyChatMember() && adminStatus.equals(update.getMyChatMember().getNewChatMember().getStatus())) {
+                    Parameters.setMessageReceivingStartDate(Instant.now());
+                }
+            }
             if (update.hasMessage() && supergroupType.equals(update.getMessage().getChat().getType())) {
                 handleGroupMessage(update.getMessage());
             }
@@ -42,8 +50,14 @@ public class UpdateHandler {
 
     private void handleGroupMessage(Message message) {
         Integer threadId = message.getMessageThreadId() == null ? 1 : message.getMessageThreadId();
+        Instant messageDate = Instant.ofEpochSecond(message.getDate());
+
         if (isSystemMessage(message) || threadId.equals(Parameters.getRecycleTopicId())) {
             deleteCurrentMessage(message);
+            return;
+        }
+
+        if (!Parameters.isProcessHistory() && messageDate.isBefore(Parameters.getMessageReceivingStartDate())) {
             return;
         }
 
@@ -92,7 +106,7 @@ public class UpdateHandler {
     }
 
     private Message recyclingMessage(Message message, ForumTopic topic) {
-        synchronized (lock) {
+        synchronized (IOlock) {
             String messageText = getTextFromMessage(message);
             FileService.zipMessageText(messageText);
             Message recycleMessage = sendZippedMessageToRecycleTopic(

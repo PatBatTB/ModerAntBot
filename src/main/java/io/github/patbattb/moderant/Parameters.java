@@ -8,6 +8,7 @@ import io.github.patbattb.moderant.domain.ForumTopic;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.HashMap;
 
 public class Parameters {
@@ -15,15 +16,19 @@ public class Parameters {
     private static final Path SETTINGS_FILE = Path.of("settings.json");
 
     //Json field's names
-    private final static String TOPICS_FIELD_NAME = "topics";
-    private final static String BOT_TOKEN_FIELD_NAME = "botToken";
-    private final static String RECYCLE_ID_FIELD_NAME = "recycleId";
-    private final static String MUTING_MINUTES_FIELD_NAME = "mutingMinutes";
-    private final static String DELETE_TOPIC_MINUTES_FIELD_NAME = "deleteTopicMinutes";
-    private final static String DELETE_RECYCLE_MINUTES_FIELD_NAME = "deleteRecycleMinutes";
+    private static final String TOPICS_FIELD_NAME = "topics";
+    private static final String BOT_TOKEN_FIELD_NAME = "botToken";
+    private static final String PROCESS_HISTORY_FIELD_NAME = "processHistory";
+    private static final String RECYCLE_ID_FIELD_NAME = "recycleId";
+    private static final String MUTING_MINUTES_FIELD_NAME = "mutingMinutes";
+    private static final String DELETE_TOPIC_MINUTES_FIELD_NAME = "deleteTopicMinutes";
+    private static final String DELETE_RECYCLE_MINUTES_FIELD_NAME = "deleteRecycleMinutes";
 
     private static Integer recycleTopicId;
     private static String botToken;
+    private static boolean processHistory;
+
+    private static Instant messageReceivingStartDate;
 
     private static Integer defaultMutingMinutes;
 
@@ -49,12 +54,26 @@ public class Parameters {
     public static Integer getRecycleTopicId() {
         return recycleTopicId;
     }
+
     public static String getBotToken() {
         return botToken;
     }
 
+    public static Instant getMessageReceivingStartDate() {
+        return messageReceivingStartDate;
+    }
+
+    public static void setMessageReceivingStartDate(Instant messageReceivingStartDate) {
+        Parameters.messageReceivingStartDate = messageReceivingStartDate;
+    }
+
+    public static boolean isProcessHistory() {
+        return processHistory;
+    }
+
     public static void init() {
         try {
+            messageReceivingStartDate = Instant.now();
             readSettings();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -66,6 +85,7 @@ public class Parameters {
         JsonNode rootNode = mapper.readTree(SETTINGS_FILE.toFile());
         JsonNode topicsNode = rootNode.get(TOPICS_FIELD_NAME);
         initBotToken(rootNode);
+        initProcessHistory(rootNode);
         initRecycleId(rootNode);
         initRestrictionTime(rootNode);
         initTopicsSettings(topicsNode);
@@ -82,6 +102,11 @@ public class Parameters {
             throw new RuntimeException("object '"+BOT_TOKEN_FIELD_NAME+"' in the config file can't be blank");
         }
         botToken = token;
+    }
+
+    private static void initProcessHistory(JsonNode rootNode) {
+        JsonNode historyNode = rootNode.get(PROCESS_HISTORY_FIELD_NAME);
+        processHistory = historyNode != null && historyNode.asBoolean();
     }
 
     private static void initRestrictionTime(JsonNode rootNode) {

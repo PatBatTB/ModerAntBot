@@ -39,7 +39,7 @@ public class App {
             tgApp.registerBot(Parameters.getBotToken(), bot);
             LOG.info("Bot started successfully.");
         } catch (Exception e) {
-            LOG.error("Error during bot registering.", e);
+            LOG.error("Error during bot registration.", e);
             throw new RuntimeException(e);
         }
     }
