@@ -21,12 +21,13 @@ import java.util.concurrent.TimeUnit;
 
 public class BotSync implements LongPollingUpdateConsumer {
 
+    private static final Logger log = LogManager.getLogger(BotSync.class);
+    private static final Object SEND_LOCK = new Object();
+    private static final int DEFAULT_SEND_PERIOD = 60;
+
     private final TelegramClient botClient;
     private final ExecutorService executorService;
     private final UpdateHandler updateHandler;
-    private final Logger log = LogManager.getLogger(BotSync.class);
-    private static final Object SEND_LOCK = new Object();
-    private static final int DEFAULT_SEND_PERIOD = 60;
     private final Semaphore sendSemaphore = new Semaphore(20, true);
 
     public BotSync(String botToken) {

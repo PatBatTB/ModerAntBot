@@ -8,12 +8,21 @@
                 name="App">
 
     <Appenders>
-        <Console name="CONSOLE">
-            <ThresholdFilter level="INFO"/>
+        <Console name="STDOUT" target="SYSTEM_OUT">
+            <Filters>
+                <ThresholdFilter level="FATAL" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="INFO"/>
+            </Filters>
             <PatternLayout pattern="%d [%t] %5p %c{1.3*} - %m%n"/>
         </Console>
 
-        <RollingFile name="FILE"
+        <Console name="STDERR" target="SYSTEM_ERR">
+            <ThresholdFilter level="ERROR"/>
+            <PatternLayout pattern="%d [%t] %5p %c{1.3*} - %m%n"/>
+        </Console>
+
+        <!--RollingRandomAccessFile name="FILE"
                      fileName="app.log"
                      filePattern="app.log.%i.gz">
             <ThresholdFilter level="INFO"/>
@@ -22,13 +31,14 @@
             <Policies>
                 <SizeBasedTriggeringPolicy size="1MB"/>
             </Policies>
-        </RollingFile>
+        </RollingRandomAccessFile-->
     </Appenders>
 
     <Loggers>
         <Root level="WARN">
-            <AppenderRef ref="CONSOLE"/>
-            <AppenderRef ref="FILE"/>
+            <AppenderRef ref="STDOUT"/>
+            <AppenderRef ref="STDERR"/>
+            <!--AppenderRef ref="FILE"/-->
         </Root>
         <Logger name="io.github.patbattb" level="INFO">
         </Logger>

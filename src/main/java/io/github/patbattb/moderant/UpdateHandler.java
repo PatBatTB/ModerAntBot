@@ -22,8 +22,9 @@ import java.time.Instant;
 
 public class UpdateHandler {
 
+    private static final Logger log = LogManager.getLogger(UpdateHandler.class);
+
     private final BotSync botClient;
-    private final Logger log = LogManager.getLogger(UpdateHandler.class);
     private final String supergroupType = "supergroup";
     private final String adminStatus = "administrator";
     private final Object IOlock = new Object();

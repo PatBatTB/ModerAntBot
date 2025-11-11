@@ -60,7 +60,7 @@ public class TopicService {
 
     private static VerificationResult verifyDocument(ForumTopic topic) {
         return !topic.getPermissions().isDocument() ?
-                new VerificationResult(false, "Запрещены видео.") :
+                new VerificationResult(false, "Запрещена передача файлов.") :
                 approvedResult;
     }
 

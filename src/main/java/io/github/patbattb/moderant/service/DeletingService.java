@@ -14,9 +14,10 @@ import java.util.*;
 
 public class DeletingService {
 
+    private static final Logger log = LogManager.getLogger(DeletingService.class);
+
     private final int repeatingMillis;
     private final BotSync bot;
-    private final Logger log = LogManager.getLogger(DeletingService.class);
 
     public DeletingService(int repeatingMillis, BotSync bot) {
         this.repeatingMillis = repeatingMillis;
