@@ -96,6 +96,8 @@ public class UpdateHandler {
             }
             Integer recycleMessageId = (recycleMessage == null) ? null : recycleMessage.getMessageId();
             Message notificationMessage = sendRecyclingNotification(message, recycleMessageId, cause);
+            log.info("Message from user {} has been deleted from topic '{}' for cause: {}",
+                    message.getFrom().getUserName(), (topic == null) ? "unknown": topic.getTitle(), cause);
             recordDeleteMessageTime(notificationMessage, Parameters.getDeleteTopicMinutes());
             deleteCurrentMessage(message);
         }

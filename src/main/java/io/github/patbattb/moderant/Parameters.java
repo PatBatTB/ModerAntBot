@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.github.patbattb.moderant.domain.ForumTopic;
+import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -23,6 +24,7 @@ public class Parameters {
     private static final String MUTING_MINUTES_FIELD_NAME = "mutingMinutes";
     private static final String DELETE_TOPIC_MINUTES_FIELD_NAME = "deleteTopicMinutes";
     private static final String DELETE_RECYCLE_MINUTES_FIELD_NAME = "deleteRecycleMinutes";
+    private static final String LOGGER_LEVEL = "logLevel";
 
     private static Integer recycleTopicId;
     private static String botToken;
@@ -34,6 +36,8 @@ public class Parameters {
 
     private static Integer deleteTopicMinutes = 5; //by default
     private static Integer deleteRecycleMinutes = 10; //by default
+
+    private static Level logLevel;
 
     public static HashMap<Integer, ForumTopic> getTopics() {
         return TOPICS;
@@ -63,6 +67,10 @@ public class Parameters {
         return messageReceivingStartDate;
     }
 
+    public static Level getLogLevel() {
+        return logLevel;
+    }
+
     public static void setMessageReceivingStartDate(Instant messageReceivingStartDate) {
         Parameters.messageReceivingStartDate = messageReceivingStartDate;
     }
@@ -90,6 +98,7 @@ public class Parameters {
         initRestrictionTime(rootNode);
         initTopicsSettings(topicsNode);
         initDeleteMessageTime(rootNode);
+        initLogLevel(rootNode);
     }
 
     private static void initBotToken(JsonNode rootNode) {
@@ -174,5 +183,19 @@ public class Parameters {
             throw new RuntimeException("You need to specify integer object '"+RECYCLE_ID_FIELD_NAME+"' in the config file.");
         }
         recycleTopicId = rootNode.get(RECYCLE_ID_FIELD_NAME).asInt();
+    }
+
+    private static void initLogLevel(JsonNode rootNode) {
+        JsonNode logLevelNode = rootNode.get(LOGGER_LEVEL);
+        if (logLevelNode == null) {
+            return; // logLevel has used from XML config
+        }
+        Level level = Level.getLevel(logLevelNode.asText());
+        if (level != null) {
+            logLevel = level;
+        } else {
+            throw new RuntimeException("You need to set correct value for object '"+LOGGER_LEVEL+"'. " +
+                    "Available values are: OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL");
+        }
     }
 }
