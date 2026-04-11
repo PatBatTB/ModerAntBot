@@ -1,5 +1,6 @@
 package io.github.patbattb.moderant;
 
+import okhttp3.OkHttpClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
@@ -30,9 +31,9 @@ public class BotSync implements LongPollingUpdateConsumer {
     private final UpdateHandler updateHandler;
     private final Semaphore sendSemaphore = new Semaphore(20, true);
 
-    public BotSync(String botToken) {
+    public BotSync(OkHttpClient client, String botToken) {
         executorService = Executors.newFixedThreadPool(100);
-        botClient = new OkHttpTelegramClient(botToken);
+        botClient = new OkHttpTelegramClient(client, botToken);
         updateHandler = new UpdateHandler(this);
     }
 

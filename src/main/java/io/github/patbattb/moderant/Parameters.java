@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.github.patbattb.moderant.domain.ForumTopic;
+import io.github.patbattb.moderant.domain.Proxy;
 import org.apache.logging.log4j.Level;
 
 import java.io.IOException;
@@ -24,11 +25,20 @@ public class Parameters {
     private static final String MUTING_MINUTES_FIELD_NAME = "mutingMinutes";
     private static final String DELETE_TOPIC_MINUTES_FIELD_NAME = "deleteTopicMinutes";
     private static final String DELETE_RECYCLE_MINUTES_FIELD_NAME = "deleteRecycleMinutes";
-    private static final String LOGGER_LEVEL = "logLevel";
+    private static final String LOGGER_LEVEL_FIELD_NAME = "logLevel";
+    private static final String PROXY_FIELD_NAME = "proxy";
+    private static final String PROXY_TYPE_FIELD_NAME = "type";
+    private static final String PROXY_HOST_FIELD_NAME = "host";
+    private static final String PROXY_PORT_FIELD_NAME = "port";
+    private static final String PROXY_AUTH_FIELD_NAME = "auth";
+    private static final String PROXY_LOGIN_FIELD_NAME = "login";
+    private static final String PROXY_PASS_FIELD_NAME = "pass";
 
     private static Integer recycleTopicId;
     private static String botToken;
     private static boolean processHistory;
+
+    private static Proxy proxy;
 
     private static Instant messageReceivingStartDate;
 
@@ -61,6 +71,10 @@ public class Parameters {
 
     public static String getBotToken() {
         return botToken;
+    }
+
+    public static Proxy getProxy() {
+        return proxy;
     }
 
     public static Instant getMessageReceivingStartDate() {
@@ -99,6 +113,7 @@ public class Parameters {
         initTopicsSettings(topicsNode);
         initDeleteMessageTime(rootNode);
         initLogLevel(rootNode);
+        initProxy(rootNode);
     }
 
     private static void initBotToken(JsonNode rootNode) {
@@ -111,6 +126,73 @@ public class Parameters {
             throw new RuntimeException("object '"+BOT_TOKEN_FIELD_NAME+"' in the config file can't be blank");
         }
         botToken = token;
+    }
+
+    private static void initProxy(JsonNode rootNode) throws JsonProcessingException {
+        JsonNode proxyNode = rootNode.get(PROXY_FIELD_NAME);
+
+        if (proxyNode != null) {
+            validateProxyNode(proxyNode);
+            JsonMapper mapper = new JsonMapper();
+            proxy = mapper.readValue(proxyNode.toString(), Proxy.class);
+        }
+    }
+
+    private static void validateProxyNode(JsonNode proxyNode) {
+        JsonNode typeNode = proxyNode.get(PROXY_TYPE_FIELD_NAME);
+        if (typeNode == null) {
+            throw new RuntimeException("You need to specify text object '"+PROXY_FIELD_NAME+"."+PROXY_TYPE_FIELD_NAME+"' in the config file.");
+        }
+        String type = typeNode.asText();
+        if (!type.equals("HTTP") && !type.equals("SOCKS")) {
+            throw new RuntimeException("You need to set correct value for object '"+PROXY_FIELD_NAME+"."+PROXY_TYPE_FIELD_NAME+"' " +
+                    "Available values are: HTTP, SOCKS");
+        }
+
+        JsonNode hostNode = proxyNode.get(PROXY_HOST_FIELD_NAME);
+        if (hostNode == null) {
+            throw new RuntimeException("You need to specify text object '"+PROXY_FIELD_NAME+"."+PROXY_HOST_FIELD_NAME+"' in the config file.");
+        }
+        String host = hostNode.asText();
+        if (host.isBlank()) {
+            throw new RuntimeException("object '"+PROXY_FIELD_NAME+"."+PROXY_HOST_FIELD_NAME+"' in the config file can't be blank");
+        }
+
+        JsonNode portNode = proxyNode.get(PROXY_PORT_FIELD_NAME);
+        if (portNode == null || !portNode.isInt()) {
+            throw new RuntimeException("You need to specify integer object '"+PROXY_FIELD_NAME+"."+PROXY_PORT_FIELD_NAME+"' in the config file.");
+        }
+        int port = portNode.asInt();
+        if (port < 0 || port > 65535) {
+            throw new RuntimeException("The object '"+PROXY_FIELD_NAME+"."+PROXY_PORT_FIELD_NAME+"' in the config file must be in range 0-65535");
+        }
+
+        JsonNode authNode = proxyNode.get(PROXY_AUTH_FIELD_NAME);
+        if (authNode != null) {
+            validateAuthNode(authNode);
+        }
+    }
+
+    private static void validateAuthNode(JsonNode authNode) {
+        JsonNode loginNode = authNode.get(PROXY_LOGIN_FIELD_NAME);
+        if (loginNode == null) {
+            throw new RuntimeException("You need to specify text object '"+
+                    PROXY_FIELD_NAME+"."+PROXY_AUTH_FIELD_NAME+"."+PROXY_LOGIN_FIELD_NAME+
+                    "' in the config file.");
+        }
+        String login = loginNode.asText();
+        if (login.isBlank()) {
+            throw new RuntimeException("object '"+
+                    PROXY_FIELD_NAME+"."+PROXY_AUTH_FIELD_NAME+"."+PROXY_LOGIN_FIELD_NAME+
+                    "' in the config file can't be blank");
+        }
+
+        JsonNode passNode = authNode.get(PROXY_PASS_FIELD_NAME);
+        if (passNode == null) {
+            throw new RuntimeException("You need to specify text object '"+
+                    PROXY_FIELD_NAME+"."+PROXY_AUTH_FIELD_NAME+"."+PROXY_PASS_FIELD_NAME+
+                    "' in the config file.");
+        }
     }
 
     private static void initProcessHistory(JsonNode rootNode) {
@@ -186,7 +268,7 @@ public class Parameters {
     }
 
     private static void initLogLevel(JsonNode rootNode) {
-        JsonNode logLevelNode = rootNode.get(LOGGER_LEVEL);
+        JsonNode logLevelNode = rootNode.get(LOGGER_LEVEL_FIELD_NAME);
         if (logLevelNode == null) {
             return; // logLevel has used from XML config
         }
@@ -194,7 +276,7 @@ public class Parameters {
         if (level != null) {
             logLevel = level;
         } else {
-            throw new RuntimeException("You need to set correct value for object '"+LOGGER_LEVEL+"'. " +
+            throw new RuntimeException("You need to set correct value for object '"+ LOGGER_LEVEL_FIELD_NAME +"'. " +
                     "Available values are: OFF, FATAL, ERROR, WARN, INFO, DEBUG, TRACE, ALL");
         }
     }
